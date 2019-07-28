@@ -2260,6 +2260,10 @@ multi_bcast(struct multi_context *m,
                     }
                 }
 #endif /* ifdef ENABLE_PF */
+#ifdef ENABLE_VLAN_TAGGING
+                if (vid != 0 && vid != mi->context.options.vlan_pvid)
+                    continue;
+#endif
                 multi_add_mbuf(m, mi, mb);
             }
         }
@@ -2641,6 +2645,18 @@ multi_process_incoming_link(struct multi_context *m, struct multi_instance *inst
             {
 #ifdef ENABLE_VLAN_TAGGING
                 uint16_t vid = 0;
+                if (m->top.options.vlan_tagging)
+                {
+                    if (vlan_filter_incoming_8021q_tag(&c->c2.to_tun))
+                    {
+                        /* Drop VLAN-tagged frame. */
+                        c->c2.to_tun.len = 0;
+                    }
+                    else
+                    {
+                        vid = c->options.vlan_pvid;
+                    }
+                }
 #else
                 const uint16_t vid = 0;
 #endif
@@ -2777,6 +2793,14 @@ multi_process_incoming_tun(struct multi_context *m, const unsigned int mpp_flags
         {
             return true;
         }
+
+#ifdef ENABLE_VLAN_TAGGING
+        if (dev_type == DEV_TYPE_TAP && m->top.options.vlan_tagging)
+        {
+            if ((vid = vlan_remove_8021q_tag (&m->top, &m->top.c2.buf)) == -1)
+                return false;
+        }
+#endif
 
         /*
          * Route an incoming tun/tap packet to

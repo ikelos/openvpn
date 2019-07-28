@@ -306,7 +306,7 @@ mroute_extract_addr_ether(struct mroute_addr *src,
                     proto = ntohs(tag->proto);
                     buf_advance(&b, SIZE_ETH_TO_8021Q_HDR);
                 }
-                else
+                else if (proto == OPENVPN_ETH_P_8021Q)
                 {
                     /* It's an 8021q packet, but doesn't have a header, so something went wrong */
                     ret = 0;
